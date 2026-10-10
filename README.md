@@ -1,77 +1,30 @@
-# Zenith V rocket telemetry + onboard video flight computer (C / Arduino)
+Hello. This is the Zenith V model rocket guide
 
-Two Arduino sketches:
+WARNING - My launch ended in failure because of a failed engine block, i will detail more about it and and how to avoid it later.
 
-- `flight_computer/` — runs on the Freenove ESP32-S3-CAM. Reads the
-  BMP388 and NEO-M8N, tracks flight state, logs CSV + records video to
-  the included SD card, sends LoRa telemetry. Camera capture runs on
-  CPU core 0 as a separate FreeRTOS task so SD writes never stall the
-  telemetry loop on core 1.
-- `ground_station/` — runs on a second Arduino-capable board wired to
-  your other SX1276 module. Receives telemetry, prints CSV over serial.
+The zenith V is meant to be a re-useable 3D printable model rocket. the files in this Github will include: 
+list of materials
+.STL Files 
+Code
 
-## Arduino IDE setup
 
-1. Board: **ESP32S3 Dev Module** (per Freenove's own tutorial for this
-   board).
-2. Libraries to install via Library Manager:
-   - `Adafruit BMP3XX Library` (+ its dependency `Adafruit BusIO`)
-   - `TinyGPSPlus`
-   - `LoRa` by Sandeep Mistry
-   - `SD_MMC` and `esp_camera` ship with the ESP32 Arduino core — nothing
-     to install.
 
-## Before you flash — two things sourced from Freenove, not guessed here
+Section 1 - List Of Materials
 
-**Camera pins.** `camera_capture.cpp` uses `#define CAMERA_MODEL_FREENOVE_ESP32S3_CAM`
-and `#include "camera_pins.h"` rather than hardcoded GPIO numbers —
-getting the camera pin map wrong is the most common way to hang one of
-these boards on boot. Freenove's own C tutorial (downloadable from their
-product page, fnk0085) has the tested pin definitions for this exact
-board under their Chapter 7 "Camera Web Server" example — pull
-`camera_pins.h` and confirm the `CAMERA_MODEL_*` define from there if
-your installed core version doesn't already recognize
-`CAMERA_MODEL_FREENOVE_ESP32S3_CAM`.
+- 3D printer and filiment. the Zenith V uses approximately 360g
+- model rocket launch pad and controller, i recommend the Estes launch pad and pro series 2 controller
+- Engines, 2 Booster stage 24mm engines, and 1 sustainer 24mm engine (i recommend 2 E-12-0 and 1 D-12-7)
+- Flight computer (i recomend to design and build your own but here is the one i used)
+- 1 Freenove ESP32S3 Dev Kit
+- 1 NEO M6N GPS
+- 2 CC1101
+- 1 3.3V LiPo Battery
+- 1 Arduino Nano
 
-**SD_MMC pins.** This board uses SDMMC 1-bit mode via the built-in
-`SD_MMC.h` library (confirmed in Freenove's docs). `flight_computer.ino`
-calls `SD_MMC.begin("/sdcard", true)` and relies on default pin
-detection; if that fails on your board, copy the exact `SD_MMC.setPins(...)`
-call from Freenove's Chapter 4 "SDMMC Test" example, which is tested
-against this specific board revision.
+- Section 2 STL files
 
-## Other things to set before flying
+- https://makerworld.com/en/@user_35727456/verifying
 
-- `config.h` pin numbers for the barometer, GPS, LoRa, and battery ADC
-  are placeholders — set them to your actual wiring.
-- The barometer calibrates to ground level at boot (`baro.calibrate()`
-  in `setup()`) — power on while the rocket is upright on the pad, not
-  before you walk out to the field.
-- No pyro/deployment channels in this build — the state machine drives
-  telemetry rate and video start/stop only, not recovery.
+- Section 3 Code
 
-## Video format
-
-Frames save as `frame_00001.jpg`, `frame_00002.jpg`, ... inside a new
-`flight_NNN` folder each time recording starts, rather than one big
-video container. That way a mid-flight SD write error or power loss
-only costs the last frame or two, not the whole clip. After recovery,
-stitch into a video with ffmpeg:
-
-```
-ffmpeg -framerate 10 -i frame_%05d.jpg -pix_fmt yuv420p flight.mp4
-```
-
-## Why no live video over LoRa
-
-LoRa's data rate (roughly hundreds of bits/sec to a few kbps depending
-on spreading factor) can't carry video — that's why telemetry (altitude,
-GPS, battery) goes over LoRa while video is recorded onboard and
-recovered after the flight instead. That's reliable regardless of
-altitude or line-of-sight, which a live downlink wouldn't be.
-
-## Wire format
-
-`telemetry.h` is the single source of truth for the packet layout and
-is copied identically into both sketches. If you change it, copy the
-updated file to both sides so encode/decode don't drift out of sync.
+- The files for code are found in a separate area
